@@ -30,6 +30,14 @@ function requireScope(scope) {
     next();
   };
 }
+function requireRole(role) {
+  return (req, res, next) => {
+    if (!req.auth || req.auth.role !== role) {
+      return next(new ApiError(403, 'FORBIDDEN', `Requires role: ${role}`));
+    }
+    next();
+  };
+}
 
 // TODO (Phase 6): jurisdiction filter — given req.auth (role/province_id/district_id),
 // build a Mongo filter restricting readable districts/installations to the user's scope.
@@ -38,4 +46,4 @@ function jurisdictionFilter(req) {
   return {};
 }
 
-module.exports = { requireAuth, requireScope, jurisdictionFilter };
+module.exports = { requireAuth, requireScope,requireRole, jurisdictionFilter };
