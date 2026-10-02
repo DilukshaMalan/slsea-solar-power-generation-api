@@ -5,9 +5,9 @@ const readingsController = require('../controllers/readings.controller');
 const { requireAuth, requireRole, requireDeviceAuth } = require('../middleware/auth');
 
 router.get('/', controller.list);
-router.get('/:id', controller.getOne);                          // composite resource (#8)
-router.get('/:id/latest-reading', controller.getLatestReading); // processing resource (#13)
-router.get('/:id/readings', readingsController.getHistoryForInstallation); // analytical history (#17)
+router.get('/:id', controller.getOne);                                          // composite — public (Option A)
+router.get('/:id/latest-reading', requireAuth, readingsController.getLatestReadingScoped); // #13 — jurisdiction-scoped
+router.get('/:id/readings', requireAuth, readingsController.getHistoryForInstallation);     // #17 — jurisdiction-scoped
 
 router.post('/', requireAuth, requireRole('national'), controller.create);
 router.patch('/:id', requireAuth, requireRole('national'), controller.update);
