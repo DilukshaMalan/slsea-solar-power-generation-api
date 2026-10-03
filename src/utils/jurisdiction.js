@@ -134,4 +134,35 @@ async function assertInstallationInScope(auth, installation_id) {
   throw new ApiError(403, 'FORBIDDEN', 'Unrecognised role.');
 }
 
-module.exports = { resolveInstallationIds, enforceJurisdictionScope, assertInstallationInScope };
+// Checks whether ONE specific district falls within the caller's scope.
+// Used by the district generation-summary endpoint.
+async function assertDistrictInScope(auth, district_id) {
+  if (!auth) {
+    throw new ApiError(401, 'UNAUTHORIZED', 'Authentication required.');
+  }
+  if (auth.role === 'national') return;
+
+  if (auth.role === 'district') {
+    if (district_id !== auth.district_id) {
+      throw new ApiError(403, 'FORBIDDEN', 'This district is outside your jurisdiction.');
+    }
+    return;
+  }
+
+  if (auth.role === 'provincial') {
+    const district = await District.findOne({ district_id });
+    if (!district || district.province_id !== auth.province_id) {
+      throw new ApiError(403, 'FORBIDDEN', 'This district is outside your jurisdiction.');
+    }
+    return;
+  }
+
+  throw new ApiError(403, 'FORBIDDEN', 'Unrecognised role.');
+}
+
+module.exports = {
+  resolveInstallationIds,
+  enforceJurisdictionScope,
+  assertInstallationInScope,
+  assertDistrictInScope,
+};
