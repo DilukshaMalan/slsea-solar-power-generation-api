@@ -1,4 +1,6 @@
 const express = require('express');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./docs/swagger');
 
 const provincesRoutes = require('./routes/provinces.routes');
 const districtsRoutes = require('./routes/districts.routes');
@@ -14,9 +16,8 @@ const app = express();
 
 app.use(express.json());
 
-// TODO (Phase 1): confirm final URI scheme against the resource map
-// before wiring these mounts — nesting (e.g. /districts/:id/substations)
-// may live inside districtsRoutes rather than as flat top-level mounts.
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 app.use('/provinces', provincesRoutes);
 app.use('/districts', districtsRoutes);
 app.use('/substations', substationsRoutes);
