@@ -8,18 +8,25 @@ const { requireAuth, requireRole } = require('../middleware/auth');
  * /substations:
  *   get:
  *     summary: List all grid substations
+ *     description: Requires any logged-in user — not jurisdiction-scoped (infrastructure reference data).
  *     tags: [Substations]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200: { description: Array of substations }
+ *       401: { description: Missing/invalid token }
  */
-router.get('/', controller.list);
+router.get('/', requireAuth, controller.list);
 
 /**
  * @openapi
  * /substations/{id}:
  *   get:
  *     summary: Get one substation by ID
+ *     description: Requires any logged-in user — not jurisdiction-scoped.
  *     tags: [Substations]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -27,16 +34,20 @@ router.get('/', controller.list);
  *         schema: { type: string }
  *     responses:
  *       200: { description: Substation found }
+ *       401: { description: Missing/invalid token }
  *       404: { description: Not found }
  */
-router.get('/:id', controller.getOne);
+router.get('/:id', requireAuth, controller.getOne);
 
 /**
  * @openapi
  * /substations/{id}/installations:
  *   get:
  *     summary: List installations under a substation (scoped sub-collection)
+ *     description: Jurisdiction-scoped at the substation's parent district — district/provincial users restricted to their own scope.
  *     tags: [Substations]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -44,9 +55,11 @@ router.get('/:id', controller.getOne);
  *         schema: { type: string }
  *     responses:
  *       200: { description: Array of installations (api_key never included) }
+ *       401: { description: Missing/invalid token }
+ *       403: { description: Substation's district outside caller's jurisdiction }
  *       404: { description: Substation not found }
  */
-router.get('/:id/installations', controller.listInstallations);
+router.get('/:id/installations', requireAuth, controller.listInstallations);
 
 /**
  * @openapi
@@ -113,9 +126,7 @@ router.patch('/:id', requireAuth, requireRole('national'), controller.update);
  * /substations/{id}:
  *   delete:
  *     summary: Delete a substation
- *     description: >
- *       Blocked (409) if any installation still references this substation —
- *       deleting it would orphan independently-managed assets.
+ *     description: Blocked (409) if any installation still references this substation.
  *     tags: [Substations]
  *     security:
  *       - bearerAuth: []

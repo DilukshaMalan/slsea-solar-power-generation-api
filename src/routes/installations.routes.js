@@ -8,12 +8,26 @@ const { requireAuth, requireRole, requireDeviceAuth } = require('../middleware/a
  * @openapi
  * /installations:
  *   get:
- *     summary: List all solar installations
+ *     summary: List solar installations
+ *     description: >
+ *       Jurisdiction-scoped and paginated. With no query params, auto-scopes to
+ *       the caller's own jurisdiction (national = all, provincial = own province,
+ *       district = own district).
  *     tags: [Installations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 50, maximum: 500 }
  *     responses:
- *       200: { description: Array of installations (api_key never included) }
+ *       200: { description: Paginated installations (api_key never included) }
+ *       401: { description: Missing/invalid token }
  */
-router.get('/', controller.list);
+router.get('/', requireAuth, controller.list);
 
 /**
  * @openapi
@@ -22,9 +36,10 @@ router.get('/', controller.list);
  *     summary: Get installation composite resource
  *     description: >
  *       Returns the installation together with its parent substation and
- *       its latest reading embedded in one response. Public — no auth
- *       required (metadata only, not readings history).
+ *       its latest reading embedded in one response. Jurisdiction-scoped.
  *     tags: [Installations]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -32,9 +47,11 @@ router.get('/', controller.list);
  *         schema: { type: string }
  *     responses:
  *       200: { description: Composite installation view }
+ *       401: { description: Missing/invalid token }
+ *       403: { description: Installation outside caller's jurisdiction }
  *       404: { description: Not found }
  */
-router.get('/:id', controller.getOne);
+router.get('/:id', requireAuth, controller.getOne);
 
 /**
  * @openapi
@@ -81,7 +98,6 @@ router.get('/:id/latest-reading', requireAuth, readingsController.getLatestReadi
  *       - in: query
  *         name: sort
  *         schema: { type: string, example: "-timestamp" }
- *         description: "timestamp (ascending) or -timestamp (descending, default)"
  *       - in: query
  *         name: page
  *         schema: { type: integer, default: 1 }
@@ -91,10 +107,9 @@ router.get('/:id/latest-reading', requireAuth, readingsController.getLatestReadi
  *       - in: header
  *         name: If-None-Match
  *         schema: { type: string }
- *         description: ETag from a previous response — returns 304 if unchanged.
  *     responses:
  *       200: { description: Paginated readings with total/next/prev }
- *       304: { description: Not modified — client's cached copy is current }
+ *       304: { description: Not modified }
  *       401: { description: Missing/invalid token }
  *       403: { description: Installation outside caller's jurisdiction }
  *       404: { description: Installation not found }
@@ -170,7 +185,7 @@ router.patch('/:id', requireAuth, requireRole('national'), controller.update);
  * /installations/{id}:
  *   delete:
  *     summary: Decommission an installation
- *     description: Cascades — deletes this installation's own readings too (they have no meaning without it).
+ *     description: Cascades — deletes this installation's own readings too.
  *     tags: [Installations]
  *     security:
  *       - bearerAuth: []
@@ -211,7 +226,7 @@ router.delete('/:id', requireAuth, requireRole('national'), controller.remove);
  *             type: object
  *             required: [power_kw, energy_kwh, voltage]
  *             properties:
- *               timestamp: { type: string, format: date-time, description: "Defaults to now if omitted" }
+ *               timestamp: { type: string, format: date-time }
  *               power_kw: { type: number }
  *               energy_kwh: { type: number }
  *               voltage: { type: number }
